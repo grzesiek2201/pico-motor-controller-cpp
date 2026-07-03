@@ -42,6 +42,7 @@ add_executable(pico-motor-controller-cpp
     src/encoder.cpp
     src/motor.cpp
     src/pid.cpp
+    src/uart_com.cpp
 )
 
 pico_set_program_name(pico-motor-controller-cpp "pico-motor-controller-cpp")
@@ -57,6 +58,7 @@ target_link_libraries(pico-motor-controller-cpp
         hardware_gpio
         hardware_timer
         hardware_pwm
+        hardware_uart
 )
 
 # Add the standard include files to the build

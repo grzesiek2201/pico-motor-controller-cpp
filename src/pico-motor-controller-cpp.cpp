@@ -2,11 +2,13 @@
 #include "encoder.hpp"
 #include "motor.hpp"
 #include "pid.hpp"
+#include "uart_com.hpp"
 #include <cstdio>
 
 using picomotorcontroller::Encoder;
 using picomotorcontroller::Motor;
 using picomotorcontroller::PID;
+using picomotorcontroller::UARTCom;
 
 int main()
 {
@@ -30,6 +32,29 @@ int main()
         .kd = 0.3f,
         .kff = 3.54f
     });
+
+    UARTCom uart(uart0, 0, 1, 115200);
+
+    // Send odom at 50Hz
+    repeating_timer_t odom_timer;
+    add_repeating_timer_ms(-20, [](repeating_timer_t* rt) -> bool {
+            // Retrieve the tuple from the void pointer from user_data
+            auto* ctx = static_cast<std::tuple<UARTCom*, Encoder*, Encoder*>*>(rt->user_data);
+            // Unpack the tuple into named pointers
+            auto& [comm, left, right] = *ctx;
+            // Build the OdomPayload inline and send it
+            comm->send_odom(protocol::OdomPayload{
+                .left_pos       = (float)left->get_pos(),
+                .left_vel     = left->get_speed(),
+                .right_pos      = (float)right->get_pos(),
+                .right_vel    = right->get_speed()
+            });
+
+            return true;    // Return true to keep the timer repeating
+        },
+        new std::tuple<UARTCom*, Encoder*, Encoder*>{&uart, &enc_left, &enc_right}, // Bundle passed as void* user_data
+        &odom_timer
+    );
 
     // motor_left.set_speed(200);
     pid_left.set_target(30.0f);
